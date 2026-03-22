@@ -143,7 +143,7 @@ describe('POST /api/transactions', () => {
     expect(res.status).toBe(201);
     expect(res.body.id).toBeDefined();
     expect(res.body.status).toBe('pending');
-    expect(res.body.hash).toMatch(/^0x/);
+    expect(res.body.stellarTxHash).toBeDefined();
   });
 
   it('returns 400 when amount is missing', async () => {
@@ -198,7 +198,7 @@ describe('GET /api/stats', () => {
     expect(typeof res.body.totalTransactions).toBe('number');
     expect(typeof res.body.totalVolume).toBe('string');
     expect(typeof res.body.activeWallets).toBe('number');
-    expect(typeof res.body.avgGasUsed).toBe('string');
+    expect(typeof res.body.avgFee).toBe('string');
   });
 
   it('returns 401 without a token', async () => {
