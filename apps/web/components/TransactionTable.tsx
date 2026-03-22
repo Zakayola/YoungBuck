@@ -2,10 +2,11 @@ import styles from './TransactionTable.module.css';
 
 interface Transaction {
   id: string;
-  hash: string;
+  stellarTxHash: string;
   from: string;
   to: string;
   amount: string;
+  asset?: string;
   status: 'confirmed' | 'pending' | 'failed';
   timestamp: string;
 }
@@ -50,10 +51,10 @@ export default function TransactionTable({ transactions }: Props) {
         <tbody>
           {transactions.map((tx) => (
             <tr key={tx.id}>
-              <td className={styles.hash}>{truncate(tx.hash, 8)}</td>
+              <td className={styles.hash}>{truncate(tx.stellarTxHash, 8)}</td>
               <td className={styles.addr}>{truncate(tx.from)}</td>
               <td className={styles.addr}>{truncate(tx.to)}</td>
-              <td className={styles.amount}>{tx.amount} ETH</td>
+              <td className={styles.amount}>{tx.amount} {tx.asset ?? 'XLM'}</td>
               <td>
                 <span className={`${styles.badge} ${styles[tx.status]}`}>
                   {STATUS_LABELS[tx.status]}
