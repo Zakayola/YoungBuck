@@ -101,6 +101,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/soroban/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/soroban/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
       - name: Restore Yarn cache
         uses: actions/cache@v4
         with:
