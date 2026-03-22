@@ -1,0 +1,35 @@
+{
+  "name": "@zakayola/youngbuck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "YoungBuck — Web3 + SaaS hybrid platform by Zakayola",
+  "workspaces": [
+    "apps/*",
+    "contracts",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "api": "yarn workspace @zakayola/api dev",
+    "web": "yarn workspace @zakayola/web dev",
+    "contracts:compile": "yarn workspace @zakayola/contracts compile",
+    "contracts:deploy": "yarn workspace @zakayola/contracts deploy"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "prettier": "^3.2.5",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0",
+    "eslint-config-next": "^14.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "packageManager": "yarn@1.22.21"
+}

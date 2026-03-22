@@ -1,0 +1,11 @@
+{
+  "name": "@zakayola/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd soroban && cargo build --target wasm32-unknown-unknown --release",
+    "test": "cd soroban && cargo test",
+    "lint": "echo 'No lint configured for contracts'",
+    "clean": "cd soroban && cargo clean"
+  }
+}

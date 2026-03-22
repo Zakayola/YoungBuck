@@ -1,0 +1,57 @@
+name: Generate lockfile
+
+# Runs once after the repo is first pushed, or any time yarn.lock is deleted.
+# Generates yarn.lock and commits it back to the branch.
+# This workflow is a bootstrap helper — once yarn.lock is committed it will
+# find nothing to do and exit in seconds.
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**/package.json'
+      - '!**/node_modules/**'
+
+jobs:
+  lockfile:
+    name: Commit yarn.lock if missing
+    runs-on: ubuntu-latest
+    # Only run on direct pushes (not PRs) and only when actor has write access
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Use a token with write permission so the commit triggers CI
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if yarn.lock already exists
+        id: check
+        run: |
+          if [ -f yarn.lock ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate yarn.lock
+        if: steps.check.outputs.exists == 'false'
+        run: yarn install --no-frozen-lockfile
+
+      - name: Commit yarn.lock
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add yarn.lock
+          git commit -m "chore(deps): generate yarn.lock [skip ci]"
+          git push

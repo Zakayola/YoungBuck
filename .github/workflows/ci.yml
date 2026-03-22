@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Install & cache ───────────────────────────────────────────────────────
+  install:
+    name: Install dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore Yarn cache
+        uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ~/.cache/yarn
+          key: yarn-v6-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            yarn-v6-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: yarn install --no-frozen-lockfile
+
+      - name: Warn if yarn.lock is not committed
+        run: |
+          if [ ! -f yarn.lock ]; then
+            echo "::warning file=package.json::yarn.lock is missing. Run 'yarn install' locally and commit the lockfile for reproducible builds."
+          fi
+
+      - name: Upload node_modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-modules-${{ github.run_id }}
+          path: |
+            node_modules
+            apps/api/node_modules
+            apps/web/node_modules
+            packages/types/node_modules
+            packages/sdk/node_modules
+            packages/ui/node_modules
+            packages/utils/node_modules
+          retention-days: 1
+
+  # ── Lint & type-check ─────────────────────────────────────────────────────
+  lint:
+    name: Lint & Type-check
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore Yarn cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/yarn
+          key: yarn-v6-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            yarn-v6-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: yarn install --no-frozen-lockfile
+
+      - name: Lint all packages
+        run: yarn lint
+
+  # ── Build ─────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore Yarn cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/yarn
+          key: yarn-v6-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            yarn-v6-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: yarn install --no-frozen-lockfile
+
+      - name: Build all packages and apps
+        run: yarn build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
+
+  # ── API tests ─────────────────────────────────────────────────────────────
+  test-api:
+    name: Test — API
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore Yarn cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/yarn
+          key: yarn-v6-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            yarn-v6-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: yarn install --no-frozen-lockfile
+
+      - name: Run API tests
+        run: yarn workspace @zakayola/api test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-not-used-in-production
+
+  # ── Soroban contract tests ────────────────────────────────────────────────
+  test-contracts:
+    name: Test — Soroban Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/soroban/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/soroban/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      - name: Build Soroban contract
+        run: cd contracts/soroban && cargo build --target wasm32-unknown-unknown --release
+
+      - name: Run Soroban contract tests
+        run: cd contracts/soroban && cargo test
