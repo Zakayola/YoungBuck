@@ -8,6 +8,24 @@ const nextConfig = {
     NEXT_PUBLIC_STELLAR_NETWORK: process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet',
     NEXT_PUBLIC_SOROBAN_CONTRACT_ID: process.env.NEXT_PUBLIC_SOROBAN_CONTRACT_ID || '',
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Prevent Node.js-only Stellar SDK modules from being bundled for the browser
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+      };
+      config.externals = [
+        ...(config.externals || []),
+        'sodium-native',
+        'require-addon',
+      ];
+    }
+    return config;
+  },
 };
 
 module.exports = nextConfig;
