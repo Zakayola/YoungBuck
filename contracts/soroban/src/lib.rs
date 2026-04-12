@@ -1,5 +1,6 @@
 #![no_std]
 
+#[cfg(test)]
 mod test;
 
 use soroban_sdk::{
