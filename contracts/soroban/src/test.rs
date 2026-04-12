@@ -1,7 +1,9 @@
-#![cfg(test)]
+#[cfg(test)]
+extern crate std;
 
 use super::*;
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
+use std::format;
 
 fn setup() -> (Env, Address, LedgerContractClient<'static>) {
     let env = Env::default();
@@ -29,15 +31,15 @@ fn test_deposit_records_entry_and_deducts_fee() {
     let recipient = Address::generate(&env);
     let ref_id = String::from_str(&env, "tx-ref-001");
 
-    let index = client.deposit(&sender, &recipient, &1_000_0000000i128, &ref_id);
+    let index = client.deposit(&sender, &recipient, &1_000_000_000i128, &ref_id);
     assert_eq!(index, 0);
     assert_eq!(client.entry_count(), 1);
 
     let entry = client.get_entry(&0);
     assert_eq!(entry.settled, false);
-    // 1% fee on 10_000_000 stroops = 100_000 fee, net = 9_900_000
-    assert_eq!(entry.fee, 1_000_0000i128);
-    assert_eq!(entry.amount, 9_900_0000i128);
+    // 1% fee on 1,000,000,000 stroops = 10,000,000 fee, net = 990,000,000
+    assert_eq!(entry.fee, 10_000_000i128);
+    assert_eq!(entry.amount, 990_000_000i128);
 }
 
 #[test]
